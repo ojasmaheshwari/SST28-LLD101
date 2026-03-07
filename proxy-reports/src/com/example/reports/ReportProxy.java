@@ -1,30 +1,38 @@
 package com.example.reports;
 
-/**
- * TODO (student):
- * Implement Proxy responsibilities here:
- * - access check
- * - lazy loading
- * - caching of RealReport within the same proxy
- */
+import java.util.HashMap;
+import java.util.Map;
+
 public class ReportProxy implements Report {
 
-    private final String reportId;
-    private final String title;
-    private final String classification;
-    private final AccessControl accessControl = new AccessControl();
+	private final String reportId;
+	private final String title;
+	private final String classification;
+	private final AccessControl accessControl = new AccessControl();
 
-    public ReportProxy(String reportId, String title, String classification) {
-        this.reportId = reportId;
-        this.title = title;
-        this.classification = classification;
-    }
+	private static Map<String, RealReport> cache = new HashMap<>();
 
-    @Override
-    public void display(User user) {
-        // Starter placeholder: intentionally incorrect.
-        // Students should remove direct real loading on every call.
-        RealReport report = new RealReport(reportId, title, classification);
-        report.display(user);
-    }
+	public ReportProxy(String reportId, String title, String classification) {
+		this.reportId = reportId;
+		this.title = title;
+		this.classification = classification;
+	}
+
+	@Override
+	public void display(User user) {
+		String cacheKey = reportId + "|" + title + "|" + classification;
+
+		if (cache.containsKey(cacheKey)) {
+			cache.get(cacheKey).display(user);
+		} else {
+			if (accessControl.canAccess(user, classification)) {
+				RealReport realReport = new RealReport(reportId, title, classification);
+				cache.put(cacheKey, realReport);
+				realReport.display(user);
+			} else {
+				throw new RuntimeException("User " + user.getName() + " with role " + user.getRole()
+						+ " does not have priveleges to access this report. Report Classification: " + classification);
+			}
+		}
+	}
 }
